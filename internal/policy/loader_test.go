@@ -20,14 +20,14 @@ func TestLoadPolicies(t *testing.T) {
 		})
 		s.It("returns empty when policies dir is empty", func(ctx *specs.Context) {
 			root := t.TempDir()
-			_ = os.MkdirAll(filepath.Join(root, ".syntegrity", "policies"), 0o750)
+			_ = os.MkdirAll(filepath.Join(root, ".devforge", "policies"), 0o750)
 			policies, err := LoadPolicies(root)
 			ctx.Expect(err).To(specs.BeNil())
 			ctx.Expect(len(policies) == 0).To(specs.BeTrue())
 		})
 		s.It("loads valid YAML policy", func(ctx *specs.Context) {
 			root := t.TempDir()
-			policyDir := filepath.Join(root, ".syntegrity", "policies")
+			policyDir := filepath.Join(root, ".devforge", "policies")
 			_ = os.MkdirAll(policyDir, 0o750)
 			_ = os.WriteFile(filepath.Join(policyDir, "a.yaml"), []byte(`
 name: test-policy
@@ -45,7 +45,7 @@ rules:
 		})
 		s.It("skips non-YAML files", func(ctx *specs.Context) {
 			root := t.TempDir()
-			policyDir := filepath.Join(root, ".syntegrity", "policies")
+			policyDir := filepath.Join(root, ".devforge", "policies")
 			_ = os.MkdirAll(policyDir, 0o750)
 			_ = os.WriteFile(filepath.Join(policyDir, "readme.txt"), []byte("text"), 0o600)
 			policies, err := LoadPolicies(root)
@@ -54,7 +54,7 @@ rules:
 		})
 		s.It("returns policies in deterministic order", func(ctx *specs.Context) {
 			root := t.TempDir()
-			policyDir := filepath.Join(root, ".syntegrity", "policies")
+			policyDir := filepath.Join(root, ".devforge", "policies")
 			_ = os.MkdirAll(policyDir, 0o750)
 			_ = os.WriteFile(filepath.Join(policyDir, "z.yaml"), []byte("name: z\n"), 0o600)
 			_ = os.WriteFile(filepath.Join(policyDir, "a.yaml"), []byte("name: a\n"), 0o600)
@@ -66,7 +66,7 @@ rules:
 		})
 		s.It("returns error for invalid YAML", func(ctx *specs.Context) {
 			root := t.TempDir()
-			policyDir := filepath.Join(root, ".syntegrity", "policies")
+			policyDir := filepath.Join(root, ".devforge", "policies")
 			_ = os.MkdirAll(policyDir, 0o750)
 			_ = os.WriteFile(filepath.Join(policyDir, "bad.yaml"), []byte("invalid: [[["), 0o600)
 			_, err := LoadPolicies(root)
@@ -75,7 +75,7 @@ rules:
 		})
 		s.It("skips unreadable file and returns readable ones", func(ctx *specs.Context) {
 			root := t.TempDir()
-			policyDir := filepath.Join(root, ".syntegrity", "policies")
+			policyDir := filepath.Join(root, ".devforge", "policies")
 			_ = os.MkdirAll(policyDir, 0o750)
 			_ = os.WriteFile(filepath.Join(policyDir, "good.yaml"), []byte("name: good\ntype: test\n"), 0o600)
 			unreadable := filepath.Join(policyDir, "unreadable.yaml")

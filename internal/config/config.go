@@ -18,13 +18,13 @@ type CoveragePolicy struct {
 	Packages []string `yaml:"packages"`
 }
 
-// Policies holds optional policy overrides from .syntegrity.yml.
+// Policies holds optional policy overrides from .devforge.yml.
 type Policies struct {
 	// Coverage configures coverage threshold and package patterns; nil means use profile defaults.
 	Coverage *CoveragePolicy `yaml:"coverage"`
 }
 
-// Config holds repository-level DevForge configuration from .syntegrity.yml.
+// Config holds repository-level DevForge configuration from .devforge.yml.
 type Config struct {
 	// Profile is the CI profile name (e.g. "go-lib", "go-service"); empty means default.
 	Profile string `yaml:"profile"`
@@ -51,7 +51,7 @@ func (p *pluginsWire) UnmarshalYAML(value *yaml.Node) error {
 	return nil
 }
 
-// configWire is used to unmarshal .syntegrity.yml so "plugins" can be either a list or a map.
+// configWire is used to unmarshal .devforge.yml so "plugins" can be either a list or a map.
 type configWire struct {
 	Profile  string           `yaml:"profile"`
 	Mode     string           `yaml:"mode"`

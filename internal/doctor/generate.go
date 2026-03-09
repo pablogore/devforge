@@ -10,12 +10,12 @@ import (
 )
 
 const (
-	policiesDir     = ".syntegrity/policies"
-	archRelPath     = ".syntegrity/policies/architecture.yaml"
-	securityRelPath = ".syntegrity/policies/security.yaml"
+	policiesDir     = ".devforge/policies"
+	archRelPath     = ".devforge/policies/architecture.yaml"
+	securityRelPath = ".devforge/policies/security.yaml"
 )
 
-// generatedPolicy is the structure written to .syntegrity/policies/*.yaml.
+// generatedPolicy is the structure written to .devforge/policies/*.yaml.
 // Rules are emitted in sorted key order for deterministic output.
 type generatedPolicy struct {
 	Name  string                 `yaml:"name"`
@@ -26,7 +26,7 @@ type generatedPolicy struct {
 // GeneratePolicies analyzes the repository at root, derives policy rules from
 // existing doctor checks (DetectAdapterImports, DetectDangerousImports,
 // DetectTimeNowUsage), and writes architecture.yaml and security.yaml under
-// .syntegrity/policies/. Returns the list of generated file paths, or nil if
+// .devforge/policies/. Returns the list of generated file paths, or nil if
 // no issues were detected (no policies needed). Overwrites existing files.
 // Output is deterministic: rules are sorted, YAML is stable.
 func GeneratePolicies(root string) ([]string, error) {

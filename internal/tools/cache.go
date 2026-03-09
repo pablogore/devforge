@@ -7,7 +7,7 @@ import (
 
 func toolsRoot() string {
 	home, _ := os.UserHomeDir()
-	return filepath.Join(home, ".syntegrity", "tools")
+	return filepath.Join(home, ".devforge", "tools")
 }
 
 func toolsBinDir() string {
@@ -41,7 +41,7 @@ func containsPath(path, dir string) bool {
 	return false
 }
 
-// toolVersionDir returns the directory for a tool version, e.g. ~/.syntegrity/tools/golangci-lint/v1.64.8
+// toolVersionDir returns the directory for a tool version, e.g. ~/.devforge/tools/golangci-lint/v1.64.8
 func toolVersionDir(toolName, version string) string {
 	return filepath.Join(toolsRoot(), toolName, version)
 }

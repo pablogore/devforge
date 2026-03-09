@@ -14,7 +14,7 @@ func TestEnvProvider(t *testing.T) {
 			ctx.Expect(p != nil).To(specs.BeTrue())
 		})
 		s.It("Get returns set value", func(ctx *specs.Context) {
-			key := "SYNTEGRITY_TEST_ENV_KEY_12345"
+			key := "DEVFORGE_TEST_ENV_KEY_12345"
 			val := "test-value"
 			_ = os.Setenv(key, val)
 			defer os.Unsetenv(key)
@@ -25,7 +25,7 @@ func TestEnvProvider(t *testing.T) {
 		})
 		s.It("Get returns empty for missing key", func(ctx *specs.Context) {
 			p := NewEnvProvider().(*Provider)
-			got := p.Get("SYNTEGRITY_NONEXISTENT_VAR_98765")
+			got := p.Get("DEVFORGE_NONEXISTENT_VAR_98765")
 			ctx.Expect(got).ToEqual("")
 		})
 	})

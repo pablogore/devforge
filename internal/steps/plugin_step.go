@@ -6,7 +6,7 @@ import (
 	"github.com/pablogore/devforge/internal/application"
 )
 
-// PluginStep runs a user-defined command via bash -c "<command>". Used for plugin entries from .syntegrity.yml.
+// PluginStep runs a user-defined command via bash -c "<command>". Used for plugin entries from .devforge.yml.
 // Build from config with NewPluginStep(config.Name, config.Run).
 type PluginStep struct {
 	name    string // plugin name for logging (unexported to avoid shadowing Name())

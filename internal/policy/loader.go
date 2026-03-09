@@ -10,9 +10,9 @@ import (
 	yaml "gopkg.in/yaml.v3"
 )
 
-const policiesDir = ".syntegrity/policies"
+const policiesDir = ".devforge/policies"
 
-// LoadPolicies reads all .yaml/.yml files from root/.syntegrity/policies and returns
+// LoadPolicies reads all .yaml/.yml files from root/.devforge/policies and returns
 // the parsed policies in deterministic order (by filename). Skips directories and
 // non-YAML files. Unreadable files are ignored with a warning. If the directory
 // does not exist, returns an empty slice and nil error.

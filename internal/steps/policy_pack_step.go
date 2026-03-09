@@ -10,7 +10,7 @@ func init() {
 	application.RegisterStep("policy-pack", func() application.Step { return PolicyPackStep{} })
 }
 
-// PolicyPackStep runs policy packs loaded from .syntegrity/policies/.
+// PolicyPackStep runs policy packs loaded from .devforge/policies/.
 // If the directory does not exist or no policies are loaded, the step is a no-op.
 type PolicyPackStep struct{}
 
@@ -19,7 +19,7 @@ func (PolicyPackStep) Name() string {
 	return "policy-pack"
 }
 
-// Run loads policies from ctx.Workdir/.syntegrity/policies and evaluates them.
+// Run loads policies from ctx.Workdir/.devforge/policies and evaluates them.
 // Returns nil if no policies exist or all pass; returns error on first violation.
 func (PolicyPackStep) Run(ctx *application.Context) error {
 	policies, err := policy.LoadPolicies(ctx.Workdir)

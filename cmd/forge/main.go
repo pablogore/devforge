@@ -131,7 +131,7 @@ func prUsage() {
 
 Description:
   Run PR validation checks including linting, testing, and conventional commit validation.
-  Profile and mode are resolved in order: CLI flags override .syntegrity.yml, then auto-detection (profile) or default (mode: full).
+  Profile and mode are resolved in order: CLI flags override .devforge.yml, then auto-detection (profile) or default (mode: full).
 
 Flags:
   --profile        Profile to use (optional; auto-detected if not set): %s
@@ -179,7 +179,7 @@ Description:
 Flags:
   --profile           Profile to use (optional; auto-detected if not set): %s
   --workdir           Working directory (default: ".")
-  --generate-policies Generate policy packs under .syntegrity/policies/ from analysis
+  --generate-policies Generate policy packs under .devforge/policies/ from analysis
   -h, --help          Show help
 
 Examples:
@@ -194,11 +194,11 @@ func initUsage() {
 
 Description:
   Initialize DevForge configuration for this repository.
-  Creates .syntegrity/, .syntegrity/policies/, and config files.
+  Creates .devforge/, .devforge/policies/, and config files.
   If config files exist, prompts to overwrite unless -f/--force is set.
 
 Flags:
-  -f, --force  Overwrite existing .syntegrity.yml and .golangci.yml without prompting
+  -f, --force  Overwrite existing .devforge.yml and .golangci.yml without prompting
   --workdir    Working directory (default: ".")
 
 Examples:
@@ -270,7 +270,7 @@ func runInit() {
 	}
 	fmt.Println()
 	fmt.Println("Next steps:")
-	fmt.Println("  git add .syntegrity .syntegrity.yml")
+	fmt.Println("  git add .devforge .devforge.yml")
 	fmt.Println("  git commit")
 	fmt.Println()
 	fmt.Println("DevForge will now enforce policies in PR pipelines.")
@@ -332,12 +332,12 @@ func runPR() {
 	}
 	if os.Getenv("DEVFORGE_DEBUG") != "" {
 		hasPolicy := cfg != nil && cfg.Policies != nil && cfg.Policies.Coverage != nil
-		fmt.Fprintf(os.Stderr, "[devforge] config from %s/.syntegrity.yml policies_coverage=%v\n", workdir, hasPolicy)
+		fmt.Fprintf(os.Stderr, "[devforge] config from %s/.devforge.yml policies_coverage=%v\n", workdir, hasPolicy)
 		if hasPolicy {
 			fmt.Fprintf(os.Stderr, "[devforge] coverage policy threshold=%d packages=%v\n", cfg.Policies.Coverage.Threshold, cfg.Policies.Coverage.Packages)
 		}
 	}
-	// Priority: 1 CLI flags, 2 .syntegrity.yml, 3 auto detection
+	// Priority: 1 CLI flags, 2 .devforge.yml, 3 auto detection
 	profileName := getFlagValue("--profile")
 	if profileName == "" && cfg.Profile != "" {
 		profileName = cfg.Profile
@@ -387,7 +387,7 @@ func runRelease() {
 		fmt.Fprintf(os.Stderr, "Error loading config: %v\n", err)
 		os.Exit(ExitCodeFailure)
 	}
-	// Priority: 1 CLI flags, 2 .syntegrity.yml, 3 auto detection
+	// Priority: 1 CLI flags, 2 .devforge.yml, 3 auto detection
 	profileName := getFlagValue("--profile")
 	if profileName == "" && cfg.Profile != "" {
 		profileName = cfg.Profile
@@ -423,7 +423,7 @@ func runDoctor() {
 		fmt.Fprintf(os.Stderr, "Error loading config: %v\n", err)
 		os.Exit(ExitCodeFailure)
 	}
-	// Priority: 1 CLI flags, 2 .syntegrity.yml, 3 auto detection
+	// Priority: 1 CLI flags, 2 .devforge.yml, 3 auto detection
 	profileName := getFlagValue("--profile")
 	if profileName == "" && cfg.Profile != "" {
 		profileName = cfg.Profile

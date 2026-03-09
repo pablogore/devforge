@@ -28,9 +28,9 @@ func TestWritePolicyFile_AutoCoverage(t *testing.T) {
 			ctx.Expect(err).To(specs.BeNil())
 			ctx.Expect(len(got)).ToEqual(0)
 		})
-		s.It("error path: cannot create policies dir when .syntegrity is a file", func(ctx *specs.Context) {
+		s.It("error path: cannot create policies dir when .devforge is a file", func(ctx *specs.Context) {
 			root := t.TempDir()
-			ctx.Expect(os.WriteFile(filepath.Join(root, ".syntegrity"), []byte("x"), 0o600)).To(specs.BeNil())
+			ctx.Expect(os.WriteFile(filepath.Join(root, ".devforge"), []byte("x"), 0o600)).To(specs.BeNil())
 			domainDir := filepath.Join(root, "internal", "domain")
 			ctx.Expect(os.MkdirAll(domainDir, 0o750)).To(specs.BeNil())
 			ctx.Expect(os.WriteFile(filepath.Join(domainDir, "pkg.go"), []byte("package domain\nimport _ \"internal/adapters\"\n"), 0o600)).To(specs.BeNil())

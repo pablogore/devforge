@@ -11,7 +11,7 @@ import (
 // BOM is the UTF-8 byte order mark; stripping it allows YAML to parse when the file was saved with BOM.
 var bom = []byte{0xef, 0xbb, 0xbf}
 
-const configFileName = ".syntegrity.yml"
+const configFileName = ".devforge.yml"
 
 // DefaultConfig returns a config with default values: Profile "", Mode "full", Plugins nil, PluginConfig nil.
 func DefaultConfig() *Config {
@@ -23,7 +23,7 @@ func DefaultConfig() *Config {
 	}
 }
 
-// LoadConfig looks for .syntegrity.yml inside workdir. If the file does not exist,
+// LoadConfig looks for .devforge.yml inside workdir. If the file does not exist,
 // returns DefaultConfig(). If it exists, parses YAML and returns the config, applying
 // defaults for missing fields (Mode "full" if empty, Plugins empty if nil).
 // When workdir is ".", it is resolved to the process current working directory so

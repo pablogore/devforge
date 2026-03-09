@@ -89,8 +89,8 @@ func TestGeneratePolicies(t *testing.T) {
 		})
 		s.It("returns error when policies dir cannot be created", func(ctx *specs.Context) {
 			root := t.TempDir()
-			syntegrityPath := filepath.Join(root, ".syntegrity")
-			ctx.Expect(os.WriteFile(syntegrityPath, []byte("x"), 0o600)).To(specs.BeNil())
+			devforgePath := filepath.Join(root, ".devforge")
+			ctx.Expect(os.WriteFile(devforgePath, []byte("x"), 0o600)).To(specs.BeNil())
 			domainDir := filepath.Join(root, "internal", "domain")
 			ctx.Expect(os.MkdirAll(domainDir, 0o750)).To(specs.BeNil())
 			ctx.Expect(os.WriteFile(filepath.Join(domainDir, "pkg.go"), []byte("package domain\nimport _ \"internal/adapters\"\n"), 0o600)).To(specs.BeNil())
@@ -129,13 +129,13 @@ func TestGeneratePolicies(t *testing.T) {
 			got1, err := GeneratePolicies(root)
 			ctx.Expect(err).To(specs.BeNil())
 			ctx.Expect(len(got1)).ToEqual(1)
-			data1, err := os.ReadFile(filepath.Join(root, ".syntegrity", "policies", "architecture.yaml"))
+			data1, err := os.ReadFile(filepath.Join(root, ".devforge", "policies", "architecture.yaml"))
 			ctx.Expect(err).To(specs.BeNil())
 
 			got2, err := GeneratePolicies(root)
 			ctx.Expect(err).To(specs.BeNil())
 			ctx.Expect(len(got2)).ToEqual(1)
-			data2, err := os.ReadFile(filepath.Join(root, ".syntegrity", "policies", "architecture.yaml"))
+			data2, err := os.ReadFile(filepath.Join(root, ".devforge", "policies", "architecture.yaml"))
 			ctx.Expect(err).To(specs.BeNil())
 
 			ctx.Expect(string(data1)).ToEqual(string(data2))

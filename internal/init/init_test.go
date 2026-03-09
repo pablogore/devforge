@@ -11,21 +11,21 @@ import (
 
 func TestInitRepository(t *testing.T) {
 	specs.Describe(t, "InitRepository", func(s *specs.Spec) {
-		s.It("empty repo creates .syntegrity, .syntegrity.yml, .golangci.yml", func(ctx *specs.Context) {
+		s.It("empty repo creates .devforge, .devforge.yml, .golangci.yml", func(ctx *specs.Context) {
 			root := t.TempDir()
 			result, err := InitRepository(root, false)
 			ctx.Expect(err).To(specs.BeNil())
 			ctx.Expect(result != nil).To(specs.BeTrue())
-			ctx.Expect(dirExists(root, ".syntegrity")).To(specs.BeTrue())
-			ctx.Expect(dirExists(root, ".syntegrity/policies")).To(specs.BeTrue())
-			ctx.Expect(fileExists(root, ".syntegrity.yml")).To(specs.BeTrue())
+			ctx.Expect(dirExists(root, ".devforge")).To(specs.BeTrue())
+			ctx.Expect(dirExists(root, ".devforge/policies")).To(specs.BeTrue())
+			ctx.Expect(fileExists(root, ".devforge.yml")).To(specs.BeTrue())
 			ctx.Expect(fileExists(root, ".golangci.yml")).To(specs.BeTrue())
-			ctx.Expect(sliceContains(result.Created, ".syntegrity.yml")).To(specs.BeTrue())
+			ctx.Expect(sliceContains(result.Created, ".devforge.yml")).To(specs.BeTrue())
 			ctx.Expect(sliceContains(result.Created, ".golangci.yml")).To(specs.BeTrue())
 		})
-		s.It("existing .syntegrity policies are preserved", func(ctx *specs.Context) {
+		s.It("existing .devforge policies are preserved", func(ctx *specs.Context) {
 			root := t.TempDir()
-			policiesDirPath := filepath.Join(root, ".syntegrity", "policies")
+			policiesDirPath := filepath.Join(root, ".devforge", "policies")
 			ctx.Expect(os.MkdirAll(policiesDirPath, 0o750)).To(specs.BeNil())
 			existingPolicy := filepath.Join(policiesDirPath, "custom.yaml")
 			ctx.Expect(os.WriteFile(existingPolicy, []byte("name: custom\ntype: custom\n"), 0o600)).To(specs.BeNil())
@@ -37,11 +37,11 @@ func TestInitRepository(t *testing.T) {
 			data, err := os.ReadFile(existingPolicy)
 			ctx.Expect(err).To(specs.BeNil())
 			ctx.Expect(string(data)).ToEqual("name: custom\ntype: custom\n")
-			ctx.Expect(sliceContains(result.Created, ".syntegrity.yml")).To(specs.BeTrue())
+			ctx.Expect(sliceContains(result.Created, ".devforge.yml")).To(specs.BeTrue())
 		})
 		s.It("does not overwrite existing config", func(ctx *specs.Context) {
 			root := t.TempDir()
-			configPath := filepath.Join(root, ".syntegrity.yml")
+			configPath := filepath.Join(root, ".devforge.yml")
 			ctx.Expect(os.WriteFile(configPath, []byte("mode: quick\nprofile: go-lib\n"), 0o600)).To(specs.BeNil())
 			golangciPath := filepath.Join(root, ".golangci.yml")
 			ctx.Expect(os.WriteFile(golangciPath, []byte("linters:\n  enable: [errcheck]\n"), 0o600)).To(specs.BeNil())
@@ -57,13 +57,13 @@ func TestInitRepository(t *testing.T) {
 			ctx.Expect(err).To(specs.BeNil())
 			ctx.Expect(string(golangciData)).ToEqual("linters:\n  enable: [errcheck]\n")
 			for _, p := range result.Created {
-				ctx.Expect(p != ".syntegrity.yml").To(specs.BeTrue())
+				ctx.Expect(p != ".devforge.yml").To(specs.BeTrue())
 				ctx.Expect(p != ".golangci.yml").To(specs.BeTrue())
 			}
 		})
 		s.It("force overwrites existing config", func(ctx *specs.Context) {
 			root := t.TempDir()
-			configPath := filepath.Join(root, ".syntegrity.yml")
+			configPath := filepath.Join(root, ".devforge.yml")
 			ctx.Expect(os.WriteFile(configPath, []byte("mode: quick\n"), 0o600)).To(specs.BeNil())
 			golangciPath := filepath.Join(root, ".golangci.yml")
 			ctx.Expect(os.WriteFile(golangciPath, []byte("linters:\n  enable: [errcheck]\n"), 0o600)).To(specs.BeNil())
@@ -71,7 +71,7 @@ func TestInitRepository(t *testing.T) {
 			result, err := InitRepository(root, true)
 			ctx.Expect(err).To(specs.BeNil())
 			ctx.Expect(result != nil).To(specs.BeTrue())
-			ctx.Expect(sliceContains(result.Created, ".syntegrity.yml")).To(specs.BeTrue())
+			ctx.Expect(sliceContains(result.Created, ".devforge.yml")).To(specs.BeTrue())
 			ctx.Expect(sliceContains(result.Created, ".golangci.yml")).To(specs.BeTrue())
 
 			configData, err := os.ReadFile(configPath)
@@ -96,28 +96,28 @@ func TestInitRepository(t *testing.T) {
 		})
 		s.It("MkdirAll failure returns error", func(ctx *specs.Context) {
 			root := t.TempDir()
-			syntegrityPath := filepath.Join(root, ".syntegrity")
-			ctx.Expect(os.WriteFile(syntegrityPath, []byte("x"), 0o600)).To(specs.BeNil())
+			devforgePath := filepath.Join(root, ".devforge")
+			ctx.Expect(os.WriteFile(devforgePath, []byte("x"), 0o600)).To(specs.BeNil())
 			result, err := InitRepository(root, false)
 			ctx.Expect(err != nil).To(specs.BeTrue())
 			ctx.Expect(result == nil).To(specs.BeTrue())
 		})
 		s.It("WriteFile config failure returns error", func(ctx *specs.Context) {
 			root := t.TempDir()
-			policiesDir := filepath.Join(root, ".syntegrity", "policies")
+			policiesDir := filepath.Join(root, ".devforge", "policies")
 			ctx.Expect(os.MkdirAll(policiesDir, 0o750)).To(specs.BeNil())
-			configPath := filepath.Join(root, ".syntegrity.yml")
+			configPath := filepath.Join(root, ".devforge.yml")
 			ctx.Expect(os.Mkdir(configPath, 0o750)).To(specs.BeNil())
 			result, err := InitRepository(root, true)
 			ctx.Expect(err != nil).To(specs.BeTrue())
 			ctx.Expect(result == nil).To(specs.BeTrue())
-			ctx.Expect(strings.Contains(err.Error(), ".syntegrity.yml")).To(specs.BeTrue())
+			ctx.Expect(strings.Contains(err.Error(), ".devforge.yml")).To(specs.BeTrue())
 		})
 		s.It("WriteFile golangci failure returns error", func(ctx *specs.Context) {
 			root := t.TempDir()
-			policiesDir := filepath.Join(root, ".syntegrity", "policies")
+			policiesDir := filepath.Join(root, ".devforge", "policies")
 			ctx.Expect(os.MkdirAll(policiesDir, 0o750)).To(specs.BeNil())
-			configPath := filepath.Join(root, ".syntegrity.yml")
+			configPath := filepath.Join(root, ".devforge.yml")
 			ctx.Expect(os.WriteFile(configPath, []byte("profile: go-lib\n"), 0o600)).To(specs.BeNil())
 			golangciPath := filepath.Join(root, ".golangci.yml")
 			ctx.Expect(os.Mkdir(golangciPath, 0o750)).To(specs.BeNil())
@@ -135,9 +135,9 @@ func TestInitRepository(t *testing.T) {
 			result, err := InitRepository(root, false)
 			ctx.Expect(err).To(specs.BeNil())
 			ctx.Expect(result != nil).To(specs.BeTrue())
-			ctx.Expect(sliceContains(result.Created, ".syntegrity/policies/architecture.yaml")).To(specs.BeTrue())
+			ctx.Expect(sliceContains(result.Created, ".devforge/policies/architecture.yaml")).To(specs.BeTrue())
 
-			archPath := filepath.Join(root, ".syntegrity", "policies", "architecture.yaml")
+			archPath := filepath.Join(root, ".devforge", "policies", "architecture.yaml")
 			info, err := os.Stat(archPath)
 			ctx.Expect(err).To(specs.BeNil())
 			ctx.Expect(info.IsDir() == false).To(specs.BeTrue())
@@ -167,48 +167,48 @@ func TestExistingConfigFiles(t *testing.T) {
 			root := t.TempDir()
 			ctx.Expect(len(ExistingConfigFiles(root))).ToEqual(0)
 		})
-		s.It("returns .syntegrity.yml when present", func(ctx *specs.Context) {
+		s.It("returns .devforge.yml when present", func(ctx *specs.Context) {
 			root := t.TempDir()
-			ctx.Expect(os.WriteFile(filepath.Join(root, ".syntegrity.yml"), nil, 0o600)).To(specs.BeNil())
-			ctx.Expect(ExistingConfigFiles(root)).ToEqual([]string{".syntegrity.yml"})
+			ctx.Expect(os.WriteFile(filepath.Join(root, ".devforge.yml"), nil, 0o600)).To(specs.BeNil())
+			ctx.Expect(ExistingConfigFiles(root)).ToEqual([]string{".devforge.yml"})
 		})
 		s.It("returns both when both present", func(ctx *specs.Context) {
 			root := t.TempDir()
-			ctx.Expect(os.WriteFile(filepath.Join(root, ".syntegrity.yml"), nil, 0o600)).To(specs.BeNil())
+			ctx.Expect(os.WriteFile(filepath.Join(root, ".devforge.yml"), nil, 0o600)).To(specs.BeNil())
 			ctx.Expect(os.WriteFile(filepath.Join(root, ".golangci.yml"), nil, 0o600)).To(specs.BeNil())
 			got := ExistingConfigFiles(root)
 			ctx.Expect(len(got)).ToEqual(2)
-			ctx.Expect(sliceContains(got, ".syntegrity.yml")).To(specs.BeTrue())
+			ctx.Expect(sliceContains(got, ".devforge.yml")).To(specs.BeTrue())
 			ctx.Expect(sliceContains(got, ".golangci.yml")).To(specs.BeTrue())
 		})
 	})
 }
 
-func TestHasSyntegrityWorkflow(t *testing.T) {
-	specs.Describe(t, "hasSyntegrityWorkflow", func(s *specs.Spec) {
+func TestHasDevforgeWorkflow(t *testing.T) {
+	specs.Describe(t, "hasDevforgeWorkflow", func(s *specs.Spec) {
 		s.It("returns true when workflow uses devforge", func(ctx *specs.Context) {
 			root := t.TempDir()
 			workflowsDir := filepath.Join(root, ".github", "workflows")
 			ctx.Expect(os.MkdirAll(workflowsDir, 0o750)).To(specs.BeNil())
-			ctx.Expect(os.WriteFile(filepath.Join(workflowsDir, "ci.yml"), []byte("name: CI\njobs:\n  syntegrity:\n    steps:\n      - uses: devforge/devforge@v1\n"), 0o600)).To(specs.BeNil())
-			ctx.Expect(hasSyntegrityWorkflow(workflowsDir)).To(specs.BeTrue())
+			ctx.Expect(os.WriteFile(filepath.Join(workflowsDir, "ci.yml"), []byte("name: CI\njobs:\n  devforge:\n    steps:\n      - uses: devforge/devforge@v1\n"), 0o600)).To(specs.BeNil())
+			ctx.Expect(hasDevforgeWorkflow(workflowsDir)).To(specs.BeTrue())
 		})
 		s.It("returns true when content contains devforge", func(ctx *specs.Context) {
 			root := t.TempDir()
 			workflowsDir := filepath.Join(root, ".github", "workflows")
 			ctx.Expect(os.MkdirAll(workflowsDir, 0o750)).To(specs.BeNil())
 			ctx.Expect(os.WriteFile(filepath.Join(workflowsDir, "ci.yml"), []byte("devforge\n"), 0o600)).To(specs.BeNil())
-			ctx.Expect(hasSyntegrityWorkflow(workflowsDir)).To(specs.BeTrue())
+			ctx.Expect(hasDevforgeWorkflow(workflowsDir)).To(specs.BeTrue())
 		})
-		s.It("returns false when no syntegrity workflow", func(ctx *specs.Context) {
+		s.It("returns false when no devforge workflow", func(ctx *specs.Context) {
 			root := t.TempDir()
 			workflowsDir := filepath.Join(root, ".github", "workflows")
 			ctx.Expect(os.MkdirAll(workflowsDir, 0o750)).To(specs.BeNil())
 			ctx.Expect(os.WriteFile(filepath.Join(workflowsDir, "other.yml"), []byte("name: Other\n"), 0o600)).To(specs.BeNil())
-			ctx.Expect(hasSyntegrityWorkflow(workflowsDir)).To(specs.BeFalse())
+			ctx.Expect(hasDevforgeWorkflow(workflowsDir)).To(specs.BeFalse())
 		})
 		s.It("returns false when read dir fails", func(ctx *specs.Context) {
-			ctx.Expect(hasSyntegrityWorkflow(filepath.Join(t.TempDir(), "nonexistent"))).To(specs.BeFalse())
+			ctx.Expect(hasDevforgeWorkflow(filepath.Join(t.TempDir(), "nonexistent"))).To(specs.BeFalse())
 		})
 		s.It("skips dirs and non-yaml and finds devforge", func(ctx *specs.Context) {
 			root := t.TempDir()
@@ -217,7 +217,7 @@ func TestHasSyntegrityWorkflow(t *testing.T) {
 			ctx.Expect(os.MkdirAll(filepath.Join(workflowsDir, "subdir"), 0o750)).To(specs.BeNil())
 			ctx.Expect(os.WriteFile(filepath.Join(workflowsDir, "readme.txt"), []byte("not yaml"), 0o600)).To(specs.BeNil())
 			ctx.Expect(os.WriteFile(filepath.Join(workflowsDir, "ci.yml"), []byte("uses: devforge/devforge@v1\n"), 0o600)).To(specs.BeNil())
-			ctx.Expect(hasSyntegrityWorkflow(workflowsDir)).To(specs.BeTrue())
+			ctx.Expect(hasDevforgeWorkflow(workflowsDir)).To(specs.BeTrue())
 		})
 		s.It("skips entry when ReadFile fails", func(ctx *specs.Context) {
 			root := t.TempDir()
@@ -225,7 +225,7 @@ func TestHasSyntegrityWorkflow(t *testing.T) {
 			ctx.Expect(os.MkdirAll(workflowsDir, 0o750)).To(specs.BeNil())
 			ctx.Expect(os.Mkdir(filepath.Join(workflowsDir, "ci.yml"), 0o750)).To(specs.BeNil())
 			ctx.Expect(os.WriteFile(filepath.Join(workflowsDir, "real.yml"), []byte("devforge\n"), 0o600)).To(specs.BeNil())
-			ctx.Expect(hasSyntegrityWorkflow(workflowsDir)).To(specs.BeTrue())
+			ctx.Expect(hasDevforgeWorkflow(workflowsDir)).To(specs.BeTrue())
 		})
 	})
 }

@@ -28,7 +28,7 @@ func TestPolicyPackStep(t *testing.T) {
 		})
 		s.It("Run empty policies dir succeeds", func(ctx *specs.Context) {
 			dir := t.TempDir()
-			err := os.MkdirAll(filepath.Join(dir, ".syntegrity", "policies"), 0o750)
+			err := os.MkdirAll(filepath.Join(dir, ".devforge", "policies"), 0o750)
 			ctx.Expect(err).To(specs.BeNil())
 			appCtx := &application.Context{
 				StdCtx:      context.Background(),
@@ -43,7 +43,7 @@ func TestPolicyPackStep(t *testing.T) {
 		})
 		s.It("Run with passing policy succeeds", func(ctx *specs.Context) {
 			dir := t.TempDir()
-			policiesDir := filepath.Join(dir, ".syntegrity", "policies")
+			policiesDir := filepath.Join(dir, ".devforge", "policies")
 			err := os.MkdirAll(policiesDir, 0o750)
 			ctx.Expect(err).To(specs.BeNil())
 			policyYAML := []byte(`name: test

@@ -14,7 +14,7 @@ type Step interface {
 }
 
 // ExternalPluginConfig is the runtime config for one external plugin (forge-plugin-<name>).
-// Set by the use case from .syntegrity.yml plugin_config; used by ExternalPluginStep to skip disabled plugins and pass params as DEVFORGE_PLUGIN_CONFIG.
+// Set by the use case from .devforge.yml plugin_config; used by ExternalPluginStep to skip disabled plugins and pass params as DEVFORGE_PLUGIN_CONFIG.
 type ExternalPluginConfig struct {
 	// Enabled controls whether the plugin is run; false skips it.
 	Enabled bool
@@ -55,6 +55,6 @@ type Context struct {
 	DoctorChecks *[]CheckResult
 	// ExternalPluginConfig maps plugin name (e.g. "security") to config; nil means no config (run all discovered plugins normally).
 	ExternalPluginConfig map[string]ExternalPluginConfig
-	// Config is the loaded .syntegrity.yml; nil means use default pipeline (no step filtering).
+	// Config is the loaded .devforge.yml; nil means use default pipeline (no step filtering).
 	Config *config.Config
 }

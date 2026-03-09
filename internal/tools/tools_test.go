@@ -24,7 +24,7 @@ func TestExists(t *testing.T) {
 	specs.Describe(t, "Exists", func(s *specs.Spec) {
 		s.It("returns true for binary in PATH", func(ctx *specs.Context) {
 			dir := t.TempDir()
-			name := "syntegrity-test-exists-xyz"
+			name := "devforge-test-exists-xyz"
 			path := filepath.Join(dir, name)
 			err := os.WriteFile(path, []byte("#!/bin/sh\nexit 0\n"), 0o600)
 			ctx.Expect(err).To(specs.BeNil())
@@ -35,7 +35,7 @@ func TestExists(t *testing.T) {
 			ctx.Expect(Exists(name)).To(specs.BeTrue())
 		})
 		s.It("returns false for nonexistent binary", func(ctx *specs.Context) {
-			ctx.Expect(Exists("syntegrity-nonexistent-binary-xyz-12345")).To(specs.BeFalse())
+			ctx.Expect(Exists("devforge-nonexistent-binary-xyz-12345")).To(specs.BeFalse())
 		})
 	})
 }
@@ -335,8 +335,8 @@ func TestEnsureTools(t *testing.T) {
 		})
 		s.It("when ensureBinDir fails returns error", func(ctx *specs.Context) {
 			home := t.TempDir()
-			syntegrityPath := filepath.Join(home, ".syntegrity")
-			err := os.WriteFile(syntegrityPath, []byte("x"), 0o600)
+			devforgePath := filepath.Join(home, ".devforge")
+			err := os.WriteFile(devforgePath, []byte("x"), 0o600)
 			ctx.Expect(err).To(specs.BeNil())
 			restore := setEnv("HOME", home)
 			defer restore()
@@ -348,7 +348,7 @@ func TestEnsureTools(t *testing.T) {
 			home := t.TempDir()
 			restore := setEnv("HOME", home)
 			defer restore()
-			toolsDir := filepath.Join(home, ".syntegrity", "tools")
+			toolsDir := filepath.Join(home, ".devforge", "tools")
 			ctx.Expect(os.MkdirAll(filepath.Join(toolsDir, "bin"), 0o750)).To(specs.BeNil())
 			golangciFile := filepath.Join(toolsDir, "golangci-lint")
 			ctx.Expect(os.WriteFile(golangciFile, []byte("x"), 0o600)).To(specs.BeNil())

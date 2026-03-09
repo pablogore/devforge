@@ -67,7 +67,7 @@ func TestCommandRunner(t *testing.T) {
 		s.It("Run(nonexistent) returns error", func(ctx *specs.Context) {
 			r := NewCommandRunner().(*CommandRunner)
 			dir := t.TempDir()
-			_, err := r.Run(context.Background(), dir, "nonexistent-binary-syntegrity-xyz")
+			_, err := r.Run(context.Background(), dir, "nonexistent-binary-devforge-xyz")
 			ctx.Expect(err != nil).To(specs.BeTrue())
 		})
 		s.It("Run with dir uses workdir", func(ctx *specs.Context) {

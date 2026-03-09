@@ -70,8 +70,8 @@ runs:
       run: |
         PROFILE_INPUT="${{ inputs.profile }}"
         if [ "$PROFILE_INPUT" = "auto" ]; then
-          if [ -f ".syntegrity.yml" ]; then
-            PROFILE=$(grep "^profile:" .syntegrity.yml 2>/dev/null | awk '{print $2}' | tr -d '\r')
+          if [ -f ".devforge.yml" ]; then
+            PROFILE=$(grep "^profile:" .devforge.yml 2>/dev/null | awk '{print $2}' | tr -d '\r')
             if [ -z "$PROFILE" ]; then
               if [ -d "cmd" ]; then PROFILE="go-service"; else PROFILE="go-lib"; fi
             fi

@@ -46,7 +46,7 @@ func (u *PRUsecase) RunWithTitle(workdir, baseRef, titleOverride string) error {
 	return u.RunWithTitleAndPluginConfig(workdir, baseRef, titleOverride, nil, nil)
 }
 
-// RunWithTitleAndPluginConfig runs PR validation with optional per-plugin config and pipeline step filtering from .syntegrity.yml.
+// RunWithTitleAndPluginConfig runs PR validation with optional per-plugin config and pipeline step filtering from .devforge.yml.
 // pluginConfig is keyed by plugin name; nil means no config (all discovered plugins run normally). cfg is the loaded config; nil means default pipeline (no filtering).
 func (u *PRUsecase) RunWithTitleAndPluginConfig(workdir, _ string, titleOverride string, pluginConfig map[string]ExternalPluginConfig, cfg *config.Config) error {
 	start := u.clock.Now()
@@ -84,10 +84,10 @@ func (u *PRUsecase) RunWithTitleAndPluginConfig(workdir, _ string, titleOverride
 			ctx.CoveragePackagesResolved = resolved
 		}
 		if pol.Threshold > 0 || len(pol.Packages) > 0 {
-			u.logger.Info("Coverage policy applied from .syntegrity.yml", "threshold", ctx.CoverageThreshold, "packages", pol.Packages)
+			u.logger.Info("Coverage policy applied from .devforge.yml", "threshold", ctx.CoverageThreshold, "packages", pol.Packages)
 		}
 	} else if cfg != nil {
-		u.logger.Info("Using profile default coverage threshold", "threshold", ctx.CoverageThreshold, "reason", "no policies.coverage in .syntegrity.yml or file not found")
+		u.logger.Info("Using profile default coverage threshold", "threshold", ctx.CoverageThreshold, "reason", "no policies.coverage in .devforge.yml or file not found")
 	}
 	steps := filterSteps(u.pipeline.Steps, cfg)
 	for _, step := range steps {

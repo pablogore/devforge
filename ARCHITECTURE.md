@@ -170,8 +170,8 @@ Steps remain infrastructure-agnostic: they use only `*application.Context` (port
 
 ### Repository configuration and plugins
 
-- **Config:** `internal/config` provides `LoadConfig(workdir)`: reads `.syntegrity.yml` from the repo root; if the file is missing, returns default config (Profile "", Mode "full", Plugins nil). Used by the CLI before selecting profile/mode; CLI flags override config values.
-- **Plugins:** Entries under `plugins` in `.syntegrity.yml` (each with `name` and `run`) are turned into `PluginStep` instances. Each plugin runs its `run` command via `bash -c`; non-zero exit fails the pipeline. Plugins run after the standard pipeline steps when the profile (or pipeline builder) appends them from config.
+- **Config:** `internal/config` provides `LoadConfig(workdir)`: reads `.devforge.yml` from the repo root; if the file is missing, returns default config (Profile "", Mode "full", Plugins nil). Used by the CLI before selecting profile/mode; CLI flags override config values.
+- **Plugins:** Entries under `plugins` in `.devforge.yml` (each with `name` and `run`) are turned into `PluginStep` instances. Each plugin runs its `run` command via `bash -c`; non-zero exit fails the pipeline. Plugins run after the standard pipeline steps when the profile (or pipeline builder) appends them from config.
 
 ---
 
@@ -195,7 +195,7 @@ Steps remain infrastructure-agnostic: they use only `*application.Context` (port
 
 ### How the CLI selects a profile
 
-1. CLI loads repository config: `config.LoadConfig(workdir)` reads `.syntegrity.yml` if present (optional; default config if file missing).
+1. CLI loads repository config: `config.LoadConfig(workdir)` reads `.devforge.yml` if present (optional; default config if file missing).
 2. **Priority:** CLI flags override config file; config overrides auto-detection/default.
 3. **Profile:** If `--profile` is set → use it. Else if `config.Profile` is non-empty → use it. Else `detection.DetectProfile(workdir)` (go-service if `go.mod` + `cmd/`; else go-lib).
 4. **Mode (pr only):** If `--mode` is set → use it. Else use `config.Mode` (default `"full"`).
@@ -324,7 +324,7 @@ Note: There is no step named `"lint"`; the command is `forge run <step> [<step>.
 | **New pipeline**   | In a profile’s `init()`, call `application.RegisterPipeline(Pipeline{Name: "my-pipeline", Steps: ...})`. Steps can come from existing step builders or new ones in `internal/steps`. |
 | **New step**       | Add a file in `internal/steps` (e.g. `mystep.go`). Implement `application.Step` (Name, Run). In `init()`, call `application.RegisterStep("my-step", func() application.Step { return NewMyStep() })`. Use only `*application.Context` (and guard if needed). |
 | **New CI command** | In `cmd/forge/main.go`: add a case in `dispatchCommand()`, add a `runX()` that uses profiles or application, add usage and help. No change to steps or domain required. |
-| **Plugin (per-repo)** | Add entries under `plugins` in `.syntegrity.yml` with `name` and `run`; each becomes a `PluginStep` that runs `bash -c "<run>"`. No code change in DevForge; pipelines that support plugins append these steps after standard steps. |
+| **Plugin (per-repo)** | Add entries under `plugins` in `.devforge.yml` with `name` and `run`; each becomes a `PluginStep` that runs `bash -c "<run>"`. No code change in DevForge; pipelines that support plugins append these steps after standard steps. |
 
 ---
 

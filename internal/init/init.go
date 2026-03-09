@@ -10,15 +10,15 @@ import (
 )
 
 const (
-	syntegrityDir    = ".syntegrity"
-	policiesDir      = ".syntegrity/policies"
-	configFileName   = ".syntegrity.yml"
+	devforgeDir      = ".devforge"
+	policiesDir      = ".devforge/policies"
+	configFileName   = ".devforge.yml"
 	golangciFileName = ".golangci.yml"
 	githubWorkflows  = ".github/workflows"
 )
 
-// defaultSyntegrityYAML is the minimal default config written when .syntegrity.yml does not exist.
-const defaultSyntegrityYAML = "mode: full\n"
+// defaultDevforgeYAML is the minimal default config written when .devforge.yml does not exist.
+const defaultDevforgeYAML = "mode: full\n"
 
 // minimalGolangciYAML is written when .golangci.yml does not exist (optional).
 // Production-ready baseline; teams can adjust linters and rules as needed.
@@ -108,7 +108,7 @@ type InitResult struct {
 }
 
 // ExistingConfigFiles returns the names of config files that already exist under root
-// (.syntegrity.yml, .golangci.yml). Used to warn and prompt before overwriting.
+// (.devforge.yml, .golangci.yml). Used to warn and prompt before overwriting.
 func ExistingConfigFiles(root string) []string {
 	var out []string
 	for _, name := range []string{configFileName, golangciFileName} {
@@ -119,9 +119,9 @@ func ExistingConfigFiles(root string) []string {
 	return out
 }
 
-// InitRepository bootstraps DevForge configuration at root. It creates .syntegrity/ and
-// .syntegrity/policies/, runs doctor.GeneratePolicies to generate policy files, creates
-// .syntegrity.yml and .golangci.yml. When force is false, existing config files are not
+// InitRepository bootstraps DevForge configuration at root. It creates .devforge/ and
+// .devforge/policies/, runs doctor.GeneratePolicies to generate policy files, creates
+// .devforge.yml and .golangci.yml. When force is false, existing config files are not
 // overwritten. When force is true, they are overwritten. Returns the list of created/updated
 // file paths (relative) and an optional suggestion message (e.g. for adding a GitHub workflow).
 //
@@ -150,7 +150,7 @@ func InitRepository(root string, force bool) (*InitResult, error) {
 		}
 	}
 	if writeConfig {
-		if err := os.WriteFile(configPath, []byte(defaultSyntegrityYAML), 0600); err != nil {
+		if err := os.WriteFile(configPath, []byte(defaultDevforgeYAML), 0600); err != nil {
 			return nil, fmt.Errorf("write %s: %w", configPath, err)
 		}
 		created = append(created, configFileName)
@@ -172,7 +172,7 @@ func InitRepository(root string, force bool) (*InitResult, error) {
 	var suggestion string
 	workflowsDir := filepath.Join(root, githubWorkflows)
 	if info, err := os.Stat(workflowsDir); err == nil && info.IsDir() {
-		if !hasSyntegrityWorkflow(workflowsDir) {
+		if !hasDevforgeWorkflow(workflowsDir) {
 			suggestion = `Add DevForge to your CI pipeline.
 
 Example workflow:
@@ -196,7 +196,7 @@ jobs:
 	return &InitResult{Created: created, Suggestion: suggestion}, nil
 }
 
-func hasSyntegrityWorkflow(workflowsDir string) bool {
+func hasDevforgeWorkflow(workflowsDir string) bool {
 	entries, err := os.ReadDir(workflowsDir)
 	if err != nil {
 		return false
