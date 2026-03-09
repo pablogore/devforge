@@ -52,8 +52,8 @@ changelog:
 
 dockers:
   - image_templates:
-      - "ghcr.io/devforge/devforge:{{ .Version }}"
-      - "ghcr.io/devforge/devforge:latest"
+      - "ghcr.io/{{ .Repo.Owner }}/{{ .Repo.Name }}:{{ .Version }}"
+      - "ghcr.io/{{ .Repo.Owner }}/{{ .Repo.Name }}:latest"
     dockerfile: Dockerfile
     goos: linux
     goarch: amd64
