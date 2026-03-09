@@ -51,6 +51,8 @@ changelog:
       order: 999
 
 # Image name uses GITHUB_REPOSITORY (owner/name) so the default token can push to GHCR.
+# org.opencontainers.image.source links the package to the repo so GITHUB_TOKEN can push.
+# See: https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-container-registry#labelling-container-images
 dockers:
   - image_templates:
       - "ghcr.io/{{ .Env.GITHUB_REPOSITORY }}:{{ .Version }}"
@@ -58,6 +60,8 @@ dockers:
     dockerfile: Dockerfile
     goos: linux
     goarch: amd64
+    build_flag_templates:
+      - "--label=org.opencontainers.image.source=https://github.com/{{ .Env.GITHUB_REPOSITORY }}"
 
 release:
   draft: false
