@@ -1,0 +1,10 @@
+mode: full
+
+policies:
+  coverage:
+    # Minimum required coverage: pass when coverage >= threshold (e.g. 90 means >= 90%).
+    threshold: 90
+    packages:
+      - "internal/*"
+
+

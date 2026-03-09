@@ -1,0 +1,91 @@
+name: DevForge
+description: Run DevForge PR validation (deterministic pipelines, profile auto-detection, plugins). Downloads the precompiled binary from GitHub Releases; no Go installation required.
+inputs:
+  profile:
+    description: 'Pipeline profile (go-lib, go-service, or "auto" to detect from repo)'
+    default: auto
+    required: false
+  mode:
+    description: PR validation mode (quick, full, deep)
+    required: false
+    default: full
+runs:
+  using: composite
+  env:
+    DEVFORGE_VERSION: v1
+  steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Cache DevForge
+      uses: actions/cache@v4
+      with:
+        path: ~/.devforge/bin
+        key: devforge-${{ runner.os }}-${{ runner.arch }}-${{ env.DEVFORGE_VERSION }}
+
+    - name: Set up Go (self-check)
+      if: github.repository == 'devforge/devforge'
+      uses: actions/setup-go@v5
+      with:
+        go-version: '1.26'
+
+    - name: Install DevForge
+      shell: bash
+      run: |
+        mkdir -p ~/.devforge/bin
+
+        # When validating this repo itself, build from source so PR changes are used
+        if [ "${{ github.repository }}" = "devforge/devforge" ]; then
+          echo "Building DevForge from source (self-check)"
+          go build -o ~/.devforge/bin/forge ./cmd/forge
+          chmod +x ~/.devforge/bin/forge
+        elif [ ! -f ~/.devforge/bin/forge ]; then
+          OS=$(echo "${{ runner.os }}" | tr '[:upper:]' '[:lower:]')
+          # Map GitHub runner OS to Go/artifact names: macOS → darwin
+          case "$OS" in macos) OS=darwin;; esac
+          ARCH="${{ runner.arch }}"
+          if [ "$ARCH" = "X64" ]; then ARCH="amd64"; fi
+          if [ "$ARCH" = "ARM64" ]; then ARCH="arm64"; fi
+          # Windows artifact has .exe suffix
+          SUFFIX=""
+          case "$OS" in windows) SUFFIX=".exe";; esac
+          if [ "$DEVFORGE_VERSION" = "v1" ]; then
+            URL="https://github.com/devforge/devforge/releases/latest/download/forge-${OS}-${ARCH}${SUFFIX}"
+          else
+            URL="https://github.com/devforge/devforge/releases/download/${DEVFORGE_VERSION}/forge-${OS}-${ARCH}${SUFFIX}"
+          fi
+          echo "Downloading DevForge from $URL"
+          curl -fL "$URL" -o ~/.devforge/bin/forge
+          chmod +x ~/.devforge/bin/forge
+        else
+          echo "DevForge already cached"
+        fi
+
+        echo "$HOME/.devforge/bin" >> $GITHUB_PATH
+
+    - name: Detect profile
+      id: profile
+      shell: bash
+      run: |
+        PROFILE_INPUT="${{ inputs.profile }}"
+        if [ "$PROFILE_INPUT" = "auto" ]; then
+          if [ -f ".syntegrity.yml" ]; then
+            PROFILE=$(grep "^profile:" .syntegrity.yml 2>/dev/null | awk '{print $2}' | tr -d '\r')
+            if [ -z "$PROFILE" ]; then
+              if [ -d "cmd" ]; then PROFILE="go-service"; else PROFILE="go-lib"; fi
+            fi
+          elif [ -d "cmd" ]; then
+            PROFILE="go-service"
+          else
+            PROFILE="go-lib"
+          fi
+        else
+          PROFILE="$PROFILE_INPUT"
+        fi
+        echo "profile=$PROFILE" >> "$GITHUB_OUTPUT"
+        echo "Detected profile: $PROFILE"
+
+    - name: Run DevForge
+      shell: bash
+      run: forge pr --profile ${{ steps.profile.outputs.profile }} --mode ${{ inputs.mode }}

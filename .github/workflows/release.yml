@@ -1,0 +1,70 @@
+name: Release
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+  packages: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    env:
+      GOPRIVATE: github.com/devforge/*
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.26.0"
+
+      - name: Configure Git for private modules
+        run: |
+          git config --global url."https://${{ secrets.GITHUB_TOKEN }}@github.com/".insteadOf "https://github.com/"
+
+      - name: Derive next version and create tag
+        run: |
+          LAST=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
+          VERSION=$(echo "$LAST" | sed 's/^v//' | awk -F. '{printf "v%d.%d.%d\n", $1, $2, $3+1}')
+          echo "Releasing $VERSION"
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          git tag -a "$VERSION" -m "Release $VERSION"
+          git push origin "$VERSION"
+
+          # Action versioning: v1 points to latest stable; v1.x.x are immutable.
+          if [[ "$VERSION" == v1.* ]]; then
+            git push origin :refs/tags/v1 2>/dev/null || true
+            git tag -f v1
+            git push origin v1
+          fi
+
+      - name: Login to GHCR
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+      - name: Run GoReleaser
+        uses: goreleaser/goreleaser-action@v5
+        with:
+          version: v2.3.0
+          args: release --clean
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Move v1 tag to latest release
+        run: |
+          VERSION=$(git describe --tags --abbrev=0)
+          echo "Moving v1 to $VERSION"
+          git push origin :refs/tags/v1 2>/dev/null || true
+          git tag -f v1
+          git push origin v1
