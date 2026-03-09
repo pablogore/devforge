@@ -50,10 +50,11 @@ changelog:
     - title: Other
       order: 999
 
+# Image name uses GITHUB_REPOSITORY (owner/name) so the default token can push to GHCR.
 dockers:
   - image_templates:
-      - "ghcr.io/{{ .Repo.Owner }}/{{ .Repo.Name }}:{{ .Version }}"
-      - "ghcr.io/{{ .Repo.Owner }}/{{ .Repo.Name }}:latest"
+      - "ghcr.io/{{ .Env.GITHUB_REPOSITORY }}:{{ .Version }}"
+      - "ghcr.io/{{ .Env.GITHUB_REPOSITORY }}:latest"
     dockerfile: Dockerfile
     goos: linux
     goarch: amd64
