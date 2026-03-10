@@ -105,7 +105,27 @@ func TestResolveCoveragePackages(t *testing.T) {
 			ctx.Expect(errors.Is(err, ErrWildcardWithOthers)).To(specs.BeTrue())
 			ctx.Expect(got == nil).To(specs.BeTrue())
 		})
+		s.It("dot-slash patterns from .devforge.yml match go list import paths", func(ctx *specs.Context) {
+			out := "github.com/getsyntegrity/kit-core/domain\ngithub.com/getsyntegrity/kit-core/errorschain\ngithub.com/getsyntegrity/kit-core/fflags\n"
+			runner := testkit.NewFakeCommandRunner()
+			runner.Stub("go", []string{"list", "./..."}, out, nil)
+			got, err := ResolveCoveragePackages(stdCtx, "/wd", []string{"./domain", "./errorschain", "./fflags"}, runner)
+			ctx.Expect(err).To(specs.BeNil())
+			ctx.Expect(len(got)).ToEqual(3)
+			ctx.Expect(contains(got, "github.com/getsyntegrity/kit-core/domain")).To(specs.BeTrue())
+			ctx.Expect(contains(got, "github.com/getsyntegrity/kit-core/errorschain")).To(specs.BeTrue())
+			ctx.Expect(contains(got, "github.com/getsyntegrity/kit-core/fflags")).To(specs.BeTrue())
+		})
 	})
+}
+
+func contains(s []string, x string) bool {
+	for _, v := range s {
+		if v == x {
+			return true
+		}
+	}
+	return false
 }
 
 func TestMatchPackage_CoverageGaps(t *testing.T) {
@@ -124,6 +144,11 @@ func TestMatchPackage_CoverageGaps(t *testing.T) {
 		})
 		s.It("glob pattern matches suffix", func(ctx *specs.Context) {
 			ctx.Expect(matchPackage("internal/*", "github.com/foo/repo/internal/domain")).To(specs.BeTrue())
+		})
+		s.It("dot-slash pattern matches go list import path (e.g. .devforge.yml packages)", func(ctx *specs.Context) {
+			ctx.Expect(matchPackage("./domain", "github.com/getsyntegrity/kit-core/domain")).To(specs.BeTrue())
+			ctx.Expect(matchPackage("./errorschain", "github.com/getsyntegrity/kit-core/errorschain")).To(specs.BeTrue())
+			ctx.Expect(matchPackage("./internal/domain", "github.com/foo/repo/internal/domain")).To(specs.BeTrue())
 		})
 	})
 }

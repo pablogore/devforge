@@ -75,7 +75,9 @@ func TestPRUsecase(t *testing.T) {
 			ctx.Expect(strings.Contains(log.LastInfoMsg, "completed") || log.InfoCalls >= 1).To(specs.BeTrue())
 		})
 		s.It("RunWithTitleAndPluginConfig with cfg.Policies.Coverage applies threshold", func(ctx *specs.Context) {
-			cmd := &testkit.FakeCommandRunner{Responses: prSuccessResponses()}
+			// Threshold with empty packages: use case resolves "*" (go list ./...) first, then pipeline runs.
+			resp := append([]testkit.CmdResponse{{Out: "github.com/foo/internal/domain\ngithub.com/foo/internal/application\n", Err: nil}}, prSuccessResponses()...)
+			cmd := &testkit.FakeCommandRunner{Responses: resp}
 			git := &testkit.FakeGitClient{}
 			env := testkit.NewFakeEnvProvider(nil)
 			log := &testkit.FakeLogger{}

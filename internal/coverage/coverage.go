@@ -92,13 +92,20 @@ func excludedPackage(importPath string) bool {
 }
 
 // matchPackage returns true if pattern matches the package import path.
-// pattern may be exact ("internal/domain" or full import path) or glob ("internal/*").
+// pattern may be exact ("internal/domain", "./domain", or full import path) or glob ("internal/*", "./internal/*").
 func matchPackage(pattern, pkg string) bool {
+	// Normalize "./foo" to "foo" so patterns from .devforge.yml match go list import paths.
+	if strings.HasPrefix(pattern, "./") {
+		pattern = pattern[2:]
+	}
+	if pattern == "" {
+		return false
+	}
 	if !strings.Contains(pattern, "*") {
 		if pattern == pkg {
 			return true
 		}
-		// Match suffix so "internal/domain" matches "github.com/foo/repo/internal/domain".
+		// Match suffix so "internal/domain" or "domain" matches "github.com/foo/repo/internal/domain" or ".../domain".
 		return strings.HasSuffix(pkg, "/"+pattern) || strings.HasSuffix(pkg, pattern)
 	}
 	// Glob: try full path first, then suffix (e.g. "internal/*" vs ".../internal/domain").

@@ -82,6 +82,14 @@ func (u *PRUsecase) RunWithTitleAndPluginConfig(workdir, _ string, titleOverride
 			}
 			ctx.CoverPkg = coverage.BuildCoverPkgFlag(resolved)
 			ctx.CoveragePackagesResolved = resolved
+		} else if pol.Threshold > 0 {
+			// Threshold set but no packages: use all module packages so coverage is measured repo-wide (e.g. kit-core with no internal/).
+			resolved, err := coverage.ResolveCoveragePackages(stdCtx, workdir, []string{"*"}, u.commandRunner)
+			if err != nil {
+				return err
+			}
+			ctx.CoverPkg = coverage.BuildCoverPkgFlag(resolved)
+			ctx.CoveragePackagesResolved = resolved
 		}
 		if pol.Threshold > 0 || len(pol.Packages) > 0 {
 			u.logger.Info("Coverage policy applied from .devforge.yml", "threshold", ctx.CoverageThreshold, "packages", pol.Packages)
