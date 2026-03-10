@@ -39,8 +39,8 @@ func TestPipelineRegistry(t *testing.T) {
 			runner := NewStepRunner(log, clk)
 			err := RunPipeline("run-test-pipeline", gCtx, runner)
 			ctx.Expect(err).To(specs.BeNil())
-			ctx.Expect(log.LastInfoMsg).ToEqual("Step completed")
-			ctx.Expect(log.InfoCalls >= 1).To(specs.BeTrue())
+			ctx.Expect(log.LastInfoMsg).ToEqual("[devforge] STEP SUCCESS")
+			ctx.Expect(log.InfoCalls >= 2).To(specs.BeTrue())
 		})
 	})
 }

@@ -45,6 +45,8 @@ type Context struct {
 	CoverPkg string
 	// CoveragePackagesResolved is the list of resolved packages (for logging when policy is applied).
 	CoveragePackagesResolved []string
+	// CoverageExcludedCount is the number of packages excluded from coverage (testkit, fixtures, config exclude).
+	CoverageExcludedCount int
 	// TitleOverride is the PR title used for conventional-commit validation when non-empty.
 	TitleOverride string
 	// Version is set by release steps (e.g. version-derivation) for downstream steps.

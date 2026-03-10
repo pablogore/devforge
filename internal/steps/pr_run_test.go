@@ -70,6 +70,31 @@ func TestGoTestStep_Run(t *testing.T) {
 			err := (GoTestStep{}).Run(appCtx)
 			ctx.Expect(err).To(specs.BeNil())
 		})
+		s.It("uses specs runner when available and logs skip message", func(ctx *specs.Context) {
+			dir := t.TempDir()
+			orig := specsRunnerAvailableFunc
+			defer func() { specsRunnerAvailableFunc = orig }()
+			specsRunnerAvailableFunc = func(*application.Context) bool { return true }
+			cmd := testkit.NewFakeCommandRunner()
+			defaultPkg := "./internal/domain,./internal/application"
+			cmd.Stub("specs", []string{"run", "--", "-race", "-coverprofile=coverage.out", "-coverpkg=" + defaultPkg, "./..."}, "", nil)
+			log := &testkit.FakeLogger{RecordInfoHistory: true}
+			appCtx := &application.Context{StdCtx: context.Background(), Cmd: cmd, Workdir: dir, Log: log, CoverPkg: ""}
+			err := (GoTestStep{}).Run(appCtx)
+			ctx.Expect(err).To(specs.BeNil())
+			ctx.Expect(cmd.WasCalled("specs", "run", "--", "-race", "-coverprofile=coverage.out", "-coverpkg="+defaultPkg, "./...")).To(specs.BeTrue())
+			var foundRunner, foundSkip bool
+			for _, c := range log.InfoHistory {
+				if strings.Contains(c.Msg, "tests executed via specs runner") {
+					foundRunner = true
+				}
+				if strings.Contains(c.Msg, "skipping go test duplicate run") {
+					foundSkip = true
+				}
+			}
+			ctx.Expect(foundRunner).To(specs.BeTrue())
+			ctx.Expect(foundSkip).To(specs.BeTrue())
+		})
 	})
 }
 
@@ -203,12 +228,20 @@ func TestGovulnCheckStep_Run(t *testing.T) {
 	})
 }
 
+// golangciLintGoArgs returns the "go" command args used by GolangCILintStep (for test stubbing).
+func golangciLintGoArgs() []string {
+	a := make([]string, 0, 2+len(GolangciLintRunArgs))
+	a = append(a, "run", GolangciLintModuleVersion)
+	a = append(a, GolangciLintRunArgs...)
+	return a
+}
+
 func TestGolangCILintStep_Run(t *testing.T) {
 	specs.Describe(t, "GolangCILintStep.Run", func(s *specs.Spec) {
 		s.It("success when tool exits ok", func(ctx *specs.Context) {
 			dir := t.TempDir()
 			cmd := testkit.NewFakeCommandRunner()
-			cmd.Stub("golangci-lint", []string{"run", "--timeout=5m"}, "", nil)
+			cmd.Stub("go", golangciLintGoArgs(), "", nil)
 			log := &testkit.FakeLogger{}
 			appCtx := &application.Context{
 				StdCtx:  context.Background(),
@@ -220,10 +253,11 @@ func TestGolangCILintStep_Run(t *testing.T) {
 			err := (GolangCILintStep{}).Run(appCtx)
 			ctx.Expect(err).To(specs.BeNil())
 		})
-		s.It("internal crash ignored", func(ctx *specs.Context) {
+		s.It("crash on first run then success on retry passes", func(ctx *specs.Context) {
 			dir := t.TempDir()
 			cmd := testkit.NewFakeCommandRunner()
-			cmd.Stub("golangci-lint", []string{"run", "--timeout=5m"}, "internal error: something", errors.New("exit 1"))
+			cmd.Enqueue("go", golangciLintGoArgs(), "panic: something", errors.New("exit 2"))
+			cmd.Enqueue("go", golangciLintGoArgs(), "", nil)
 			log := &testkit.FakeLogger{}
 			appCtx := &application.Context{
 				StdCtx:  context.Background(),
@@ -235,10 +269,26 @@ func TestGolangCILintStep_Run(t *testing.T) {
 			err := (GolangCILintStep{}).Run(appCtx)
 			ctx.Expect(err).To(specs.BeNil())
 		})
-		s.It("returns error when tool fails and not internal crash", func(ctx *specs.Context) {
+		s.It("crash on both runs fails pipeline after retry", func(ctx *specs.Context) {
 			dir := t.TempDir()
 			cmd := testkit.NewFakeCommandRunner()
-			cmd.Stub("golangci-lint", []string{"run", "--timeout=5m"}, "file.go:10: some lint error", errors.New("exit 1"))
+			cmd.Stub("go", golangciLintGoArgs(), "internal error: panic: runtime error", errors.New("exit 1"))
+			log := &testkit.FakeLogger{}
+			appCtx := &application.Context{
+				StdCtx:  context.Background(),
+				Cmd:     cmd,
+				Workdir: dir,
+				Log:     log,
+				Clock:   clock.NewRealClock(),
+			}
+			err := (GolangCILintStep{}).Run(appCtx)
+			ctx.Expect(err != nil).To(specs.BeTrue())
+			ctx.Expect(strings.Contains(err.Error(), "golangci-lint")).To(specs.BeTrue())
+		})
+		s.It("returns error when tool fails with lint issues (no retry)", func(ctx *specs.Context) {
+			dir := t.TempDir()
+			cmd := testkit.NewFakeCommandRunner()
+			cmd.Stub("go", golangciLintGoArgs(), "file.go:10: some lint error", errors.New("exit 1"))
 			log := &testkit.FakeLogger{}
 			appCtx := &application.Context{
 				StdCtx:  context.Background(),

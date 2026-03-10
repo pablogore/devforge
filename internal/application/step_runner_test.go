@@ -5,6 +5,7 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/pablogore/devforge/internal/domain"
 	"github.com/pablogore/devforge/internal/testkit"
 	"github.com/pablogore/go-specs/specs"
 )
@@ -22,21 +23,22 @@ func (s stubStep) Run(_ *Context) error { return s.err }
 
 func TestStepRunner(t *testing.T) {
 	specs.Describe(t, "StepRunner", func(s *specs.Spec) {
-		s.It("logs duration on success", func(ctx *specs.Context) {
-			log := &testkit.FakeLogger{}
+		s.It("logs STEP START and STEP SUCCESS on success", func(ctx *specs.Context) {
+			log := &testkit.FakeLogger{RecordInfoHistory: true}
 			clk := testkit.NewFakeClock().Clock()
 			runner := NewStepRunner(log, clk)
 			gCtx := &Context{StdCtx: context.Background(), Log: log, Clock: clk}
 			err := runner.Run(gCtx, stubStep{name: "stub", err: nil})
 			ctx.Expect(err).To(specs.BeNil())
-			ctx.Expect(log.LastInfoMsg).ToEqual("Step completed")
+			ctx.Expect(log.InfoCalls >= 2).To(specs.BeTrue())
+			ctx.Expect(log.InfoHistory[0].Msg).ToEqual("[devforge] STEP START")
+			ctx.Expect(log.LastInfoMsg).ToEqual("[devforge] STEP SUCCESS")
 			ctx.Expect(len(log.LastInfoArgs) >= 4).To(specs.BeTrue())
-			ctx.Expect(log.LastInfoArgs[0]).ToEqual("step")
-			ctx.Expect(log.LastInfoArgs[1]).ToEqual("stub")
-			ctx.Expect(log.LastInfoArgs[2]).ToEqual("duration_ms")
-			ctx.Expect(log.LastInfoArgs[3]).ToEqual(stepRunnerTestDurationMs)
+			ctx.Expect(log.LastInfoArgs[0]).ToEqual("event")
+			ctx.Expect(log.LastInfoArgs[2]).ToEqual("step")
+			ctx.Expect(log.LastInfoArgs[3]).ToEqual("stub")
 		})
-		s.It("logs error and returns step error on failure", func(ctx *specs.Context) {
+		s.It("logs STEP START and STEP FAILURE on generic failure", func(ctx *specs.Context) {
 			log := &testkit.FakeLogger{}
 			clk := testkit.NewFakeClock().Clock()
 			runner := NewStepRunner(log, clk)
@@ -45,10 +47,48 @@ func TestStepRunner(t *testing.T) {
 			err := runner.Run(gCtx, stubStep{name: "stub", err: wantErr})
 			ctx.Expect(err != nil).To(specs.BeTrue())
 			ctx.Expect(errors.Is(err, wantErr) || err == wantErr).To(specs.BeTrue())
-			ctx.Expect(log.LastErrorMsg).ToEqual("Step failed")
+			ctx.Expect(log.LastErrorMsg).ToEqual("[devforge] STEP FAILURE")
 			ctx.Expect(len(log.LastErrorArgs) >= 2).To(specs.BeTrue())
-			ctx.Expect(log.LastErrorArgs[0]).ToEqual("step")
-			ctx.Expect(log.LastErrorArgs[1]).ToEqual("stub")
+		})
+		s.It("logs TEST FAILURE when step returns ErrTestFailed", func(ctx *specs.Context) {
+			log := &testkit.FakeLogger{}
+			clk := testkit.NewFakeClock().Clock()
+			runner := NewStepRunner(log, clk)
+			gCtx := &Context{StdCtx: context.Background(), Log: log, Clock: clk}
+			err := runner.Run(gCtx, stubStep{name: "test", err: domain.ErrTestFailed})
+			ctx.Expect(err != nil).To(specs.BeTrue())
+			ctx.Expect(errors.Is(err, domain.ErrTestFailed)).To(specs.BeTrue())
+			ctx.Expect(log.LastErrorMsg).ToEqual("[devforge] TEST FAILURE")
+		})
+		s.It("logs POLICY VIOLATION when step returns ErrFormatting", func(ctx *specs.Context) {
+			log := &testkit.FakeLogger{}
+			clk := testkit.NewFakeClock().Clock()
+			runner := NewStepRunner(log, clk)
+			gCtx := &Context{StdCtx: context.Background(), Log: log, Clock: clk}
+			err := runner.Run(gCtx, stubStep{name: "gofmt", err: domain.ErrFormatting})
+			ctx.Expect(err != nil).To(specs.BeTrue())
+			ctx.Expect(errors.Is(err, domain.ErrFormatting)).To(specs.BeTrue())
+			ctx.Expect(log.LastErrorMsg).ToEqual("[devforge] POLICY VIOLATION")
+		})
+		s.It("logs TOOL FAILURE when step returns ErrToolFailure", func(ctx *specs.Context) {
+			log := &testkit.FakeLogger{}
+			clk := testkit.NewFakeClock().Clock()
+			runner := NewStepRunner(log, clk)
+			gCtx := &Context{StdCtx: context.Background(), Log: log, Clock: clk}
+			err := runner.Run(gCtx, stubStep{name: "lint", err: domain.ErrToolFailure})
+			ctx.Expect(err != nil).To(specs.BeTrue())
+			ctx.Expect(errors.Is(err, domain.ErrToolFailure)).To(specs.BeTrue())
+			ctx.Expect(log.LastErrorMsg).ToEqual("[devforge] TOOL FAILURE")
+		})
+		s.It("logs TOOL CRASH when step returns ErrToolCrash", func(ctx *specs.Context) {
+			log := &testkit.FakeLogger{}
+			clk := testkit.NewFakeClock().Clock()
+			runner := NewStepRunner(log, clk)
+			gCtx := &Context{StdCtx: context.Background(), Log: log, Clock: clk}
+			err := runner.Run(gCtx, stubStep{name: "lint", err: domain.ErrToolCrash})
+			ctx.Expect(err != nil).To(specs.BeTrue())
+			ctx.Expect(errors.Is(err, domain.ErrToolCrash)).To(specs.BeTrue())
+			ctx.Expect(log.LastErrorMsg).ToEqual("[devforge] TOOL CRASH")
 		})
 	})
 }

@@ -47,7 +47,7 @@ func TestFilterSteps(t *testing.T) {
 func TestPipeline_Run(t *testing.T) {
 	const durationMs = int64(50)
 	specs.Describe(t, "Pipeline.Run", func(s *specs.Spec) {
-		s.It("success runs all steps and logs", func(ctx *specs.Context) {
+		s.It("success runs all steps and logs STEP START then STEP SUCCESS per step", func(ctx *specs.Context) {
 			log := &testkit.FakeLogger{RecordInfoHistory: true}
 			clk := testkit.NewFakeClock().Clock()
 			gCtx := &Context{StdCtx: context.Background(), Log: log, Clock: clk}
@@ -55,16 +55,16 @@ func TestPipeline_Run(t *testing.T) {
 			p := Pipeline{Name: "test", Steps: []Step{stubStep{name: "s1", err: nil}, stubStep{name: "s2", err: nil}}}
 			err := p.Run(gCtx, runner)
 			ctx.Expect(err).To(specs.BeNil())
-			ctx.Expect(log.InfoCalls >= 2).To(specs.BeTrue())
-			var stepCompleted int
+			ctx.Expect(log.InfoCalls >= 4).To(specs.BeTrue())
+			var stepSuccess int
 			for _, c := range log.InfoHistory {
-				if c.Msg == "Step completed" {
-					stepCompleted++
+				if c.Msg == "[devforge] STEP SUCCESS" {
+					stepSuccess++
 				}
 			}
-			ctx.Expect(stepCompleted).ToEqual(2)
+			ctx.Expect(stepSuccess).ToEqual(2)
 		})
-		s.It("first step fails returns error and logs", func(ctx *specs.Context) {
+		s.It("first step fails returns error and logs STEP FAILURE", func(ctx *specs.Context) {
 			wantErr := errors.New("stub error")
 			log := &testkit.FakeLogger{}
 			clk := testkit.NewFakeClock().Clock()
@@ -74,7 +74,7 @@ func TestPipeline_Run(t *testing.T) {
 			err := p.Run(gCtx, runner)
 			ctx.Expect(err != nil).To(specs.BeTrue())
 			ctx.Expect(err == wantErr || errors.Is(err, wantErr)).To(specs.BeTrue())
-			ctx.Expect(log.LastErrorMsg).ToEqual("Step failed")
+			ctx.Expect(log.LastErrorMsg).ToEqual("[devforge] STEP FAILURE")
 			ctx.Expect(log.ErrorCalls >= 1).To(specs.BeTrue())
 		})
 	})

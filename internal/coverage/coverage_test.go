@@ -49,9 +49,10 @@ func TestResolveCoveragePackages(t *testing.T) {
 				"github.com/foo/internal/mocks\n"
 			runner := testkit.NewFakeCommandRunner()
 			runner.Stub("go", []string{"list", "./..."}, out, nil)
-			got, err := ResolveCoveragePackages(stdCtx, "/wd", []string{"*"}, runner)
+			got, excluded, err := ResolveCoveragePackages(stdCtx, "/wd", []string{"*"}, nil, runner)
 			ctx.Expect(err).To(specs.BeNil())
 			ctx.Expect(len(got) == 2).To(specs.BeTrue())
+			ctx.Expect(excluded).ToEqual(0)
 			ctx.Expect(got[0] == "github.com/foo/internal/domain" || got[1] == "github.com/foo/internal/domain").To(specs.BeTrue())
 			ctx.Expect(got[0] == "github.com/foo/internal/application" || got[1] == "github.com/foo/internal/application").To(specs.BeTrue())
 			ctx.Expect(runner.WasCalled("go", "list", "./...")).To(specs.BeTrue())
@@ -60,7 +61,7 @@ func TestResolveCoveragePackages(t *testing.T) {
 			out := "github.com/foo/internal/domain\ngithub.com/foo/internal/application\ngithub.com/foo/cmd/cli\n"
 			runner := testkit.NewFakeCommandRunner()
 			runner.Stub("go", []string{"list", "./..."}, out, nil)
-			got, err := ResolveCoveragePackages(stdCtx, "/wd", []string{"internal/*"}, runner)
+			got, _, err := ResolveCoveragePackages(stdCtx, "/wd", []string{"internal/*"}, nil, runner)
 			ctx.Expect(err).To(specs.BeNil())
 			ctx.Expect(len(got)).ToEqual(2)
 		})
@@ -68,14 +69,14 @@ func TestResolveCoveragePackages(t *testing.T) {
 			out := "github.com/foo/internal/domain\ngithub.com/foo/internal/application\n"
 			runner := testkit.NewFakeCommandRunner()
 			runner.Stub("go", []string{"list", "./..."}, out, nil)
-			got, err := ResolveCoveragePackages(stdCtx, "/wd", []string{"internal/domain"}, runner)
+			got, _, err := ResolveCoveragePackages(stdCtx, "/wd", []string{"internal/domain"}, nil, runner)
 			ctx.Expect(err).To(specs.BeNil())
 			ctx.Expect(got).ToEqual([]string{"github.com/foo/internal/domain"})
 		})
 		s.It("list fails returns error", func(ctx *specs.Context) {
 			runner := testkit.NewFakeCommandRunner()
 			runner.Stub("go", []string{"list", "./..."}, "", errors.New("go list failed"))
-			got, err := ResolveCoveragePackages(stdCtx, "/wd", []string{"*"}, runner)
+			got, _, err := ResolveCoveragePackages(stdCtx, "/wd", []string{"*"}, nil, runner)
 			ctx.Expect(err != nil).To(specs.BeTrue())
 			ctx.Expect(got == nil).To(specs.BeTrue())
 		})
@@ -83,7 +84,7 @@ func TestResolveCoveragePackages(t *testing.T) {
 			out := "pkg/a\n\npkg/b\n  \n"
 			runner := testkit.NewFakeCommandRunner()
 			runner.Stub("go", []string{"list", "./..."}, out, nil)
-			got, err := ResolveCoveragePackages(stdCtx, "/wd", []string{"*"}, runner)
+			got, _, err := ResolveCoveragePackages(stdCtx, "/wd", []string{"*"}, nil, runner)
 			ctx.Expect(err).To(specs.BeNil())
 			ctx.Expect(len(got)).ToEqual(2)
 			ctx.Expect(got[0] == "pkg/a" || got[1] == "pkg/a").To(specs.BeTrue())
@@ -93,14 +94,14 @@ func TestResolveCoveragePackages(t *testing.T) {
 			out := "github.com/foo/internal/domain\ngithub.com/foo/internal/application\n"
 			runner := testkit.NewFakeCommandRunner()
 			runner.Stub("go", []string{"list", "./..."}, out, nil)
-			got, err := ResolveCoveragePackages(stdCtx, "/wd", []string{"github.com/foo/internal/domain"}, runner)
+			got, _, err := ResolveCoveragePackages(stdCtx, "/wd", []string{"github.com/foo/internal/domain"}, nil, runner)
 			ctx.Expect(err).To(specs.BeNil())
 			ctx.Expect(got).ToEqual([]string{"github.com/foo/internal/domain"})
 		})
 		s.It("validatePatterns fails without calling runner", func(ctx *specs.Context) {
 			runner := testkit.NewFakeCommandRunner()
 			runner.Default = &testkit.CommandResult{Err: errors.New("unexpected")}
-			got, err := ResolveCoveragePackages(stdCtx, "/wd", []string{"*", "internal/domain"}, runner)
+			got, _, err := ResolveCoveragePackages(stdCtx, "/wd", []string{"*", "internal/domain"}, nil, runner)
 			ctx.Expect(err != nil).To(specs.BeTrue())
 			ctx.Expect(errors.Is(err, ErrWildcardWithOthers)).To(specs.BeTrue())
 			ctx.Expect(got == nil).To(specs.BeTrue())
@@ -109,9 +110,10 @@ func TestResolveCoveragePackages(t *testing.T) {
 			out := "github.com/getsyntegrity/kit-core/domain\ngithub.com/getsyntegrity/kit-core/errorschain\ngithub.com/getsyntegrity/kit-core/fflags\n"
 			runner := testkit.NewFakeCommandRunner()
 			runner.Stub("go", []string{"list", "./..."}, out, nil)
-			got, err := ResolveCoveragePackages(stdCtx, "/wd", []string{"./domain", "./errorschain", "./fflags"}, runner)
+			got, excluded, err := ResolveCoveragePackages(stdCtx, "/wd", []string{"./domain", "./errorschain", "./fflags"}, nil, runner)
 			ctx.Expect(err).To(specs.BeNil())
 			ctx.Expect(len(got)).ToEqual(3)
+			ctx.Expect(excluded).ToEqual(0)
 			ctx.Expect(contains(got, "github.com/getsyntegrity/kit-core/domain")).To(specs.BeTrue())
 			ctx.Expect(contains(got, "github.com/getsyntegrity/kit-core/errorschain")).To(specs.BeTrue())
 			ctx.Expect(contains(got, "github.com/getsyntegrity/kit-core/fflags")).To(specs.BeTrue())
@@ -126,6 +128,48 @@ func contains(s []string, x string) bool {
 		}
 	}
 	return false
+}
+
+func TestApplyExclude(t *testing.T) {
+	specs.Describe(t, "ApplyExclude", func(s *specs.Spec) {
+		s.It("excludes testkit fixtures fake spy by default", func(ctx *specs.Context) {
+			in := []string{
+				"github.com/foo/domain",
+				"github.com/foo/testkit/fake",
+				"github.com/foo/testkit/fixtures",
+				"github.com/foo/pkg/spy",
+			}
+			filtered, excluded := ApplyExclude(in, nil)
+			ctx.Expect(len(filtered)).ToEqual(1)
+			ctx.Expect(filtered[0]).ToEqual("github.com/foo/domain")
+			ctx.Expect(excluded).ToEqual(3)
+		})
+		s.It("merges config exclude with defaults", func(ctx *specs.Context) {
+			in := []string{"github.com/foo/domain", "github.com/foo/internal/mocks"}
+			filtered, excluded := ApplyExclude(in, []string{"**/mocks/**"})
+			ctx.Expect(len(filtered)).ToEqual(1)
+			ctx.Expect(filtered[0]).ToEqual("github.com/foo/domain")
+			ctx.Expect(excluded).ToEqual(1)
+		})
+		s.It("returns all when none match", func(ctx *specs.Context) {
+			in := []string{"github.com/foo/domain", "github.com/foo/application"}
+			filtered, excluded := ApplyExclude(in, nil)
+			ctx.Expect(len(filtered)).ToEqual(2)
+			ctx.Expect(excluded).ToEqual(0)
+		})
+	})
+}
+
+func TestMatchExcludePattern(t *testing.T) {
+	specs.Describe(t, "matchExcludePattern", func(s *specs.Spec) {
+		s.It("matches **/testkit/**", func(ctx *specs.Context) {
+			ctx.Expect(matchExcludePattern("**/testkit/**", "github.com/foo/repo/testkit/fake")).To(specs.BeTrue())
+			ctx.Expect(matchExcludePattern("**/testkit/**", "github.com/foo/domain")).To(specs.BeFalse())
+		})
+		s.It("matches **/segment suffix", func(ctx *specs.Context) {
+			ctx.Expect(matchExcludePattern("**/fake", "github.com/foo/testkit/fake")).To(specs.BeTrue())
+		})
+	})
 }
 
 func TestMatchPackage_CoverageGaps(t *testing.T) {

@@ -16,7 +16,7 @@ func TestRunSteps(t *testing.T) {
 			ctx.Expect(err != nil).To(specs.BeTrue())
 			ctx.Expect(err.Error() != "").To(specs.BeTrue())
 		})
-		s.It("known step runs and logs success", func(ctx *specs.Context) {
+		s.It("known step runs and logs STEP START then STEP SUCCESS", func(ctx *specs.Context) {
 			RegisterStep("test-run-steps-step", func() Step { return stubStep{name: "test-run-steps-step"} })
 			t.Cleanup(func() { delete(stepRegistry, "test-run-steps-step") })
 			log := &testkit.FakeLogger{}
@@ -25,8 +25,8 @@ func TestRunSteps(t *testing.T) {
 			runner := NewStepRunner(log, clk)
 			err := RunSteps(gCtx, runner, []string{"test-run-steps-step"})
 			ctx.Expect(err).To(specs.BeNil())
-			ctx.Expect(log.LastInfoMsg).ToEqual("Step completed")
-			ctx.Expect(log.InfoCalls >= 1).To(specs.BeTrue())
+			ctx.Expect(log.LastInfoMsg).ToEqual("[devforge] STEP SUCCESS")
+			ctx.Expect(log.InfoCalls >= 2).To(specs.BeTrue())
 		})
 		s.It("first step succeeds second step fails returns error", func(ctx *specs.Context) {
 			RegisterStep("run-steps-ok", func() Step { return stubStep{name: "run-steps-ok"} })

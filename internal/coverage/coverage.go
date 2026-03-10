@@ -19,6 +19,9 @@ var excludedDirNames = map[string]bool{
 	"vendor": true, "testdata": true, "examples": true, "generated": true, "mocks": true,
 }
 
+// Default path segments excluded from coverage so DevForge and specs runner match (test infrastructure).
+var defaultExcludeSegments = []string{"testkit", "fixtures", "fake", "spy"}
+
 // ValidateCoveragePatterns returns an error if patterns contain "*" together with other entries.
 func ValidateCoveragePatterns(patterns []string) error {
 	if len(patterns) <= 1 {
@@ -32,32 +35,85 @@ func ValidateCoveragePatterns(patterns []string) error {
 	return nil
 }
 
-// ResolveCoveragePackages resolves patterns to a list of package import paths.
+// ResolveCoveragePackages resolves patterns to a list of package import paths and applies exclude patterns.
 // patterns: ["*"] → all packages from go list ./... (excluding vendor, testdata, examples, generated).
-// patterns containing "*" → glob match against that list.
-// Otherwise → treat each as an explicit package path (included if present in module).
+// Exclude patterns (config + default testkit/fixtures/fake/spy) are applied; excludedCount is how many were dropped.
 // Call ValidateCoveragePatterns before calling this.
-func ResolveCoveragePackages(ctx context.Context, workdir string, patterns []string, cmd ports.CommandRunner) ([]string, error) {
+func ResolveCoveragePackages(ctx context.Context, workdir string, patterns []string, excludePatterns []string, cmd ports.CommandRunner) (packages []string, excludedCount int, err error) {
 	if err := ValidateCoveragePatterns(patterns); err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 	all, err := listModulePackages(ctx, workdir, cmd)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
+	var included []string
 	if len(patterns) == 1 && patterns[0] == "*" {
-		return all, nil
-	}
-	var out []string
-	for _, pkg := range all {
-		for _, pat := range patterns {
-			if matchPackage(pat, pkg) {
-				out = append(out, pkg)
-				break
+		included = all
+	} else {
+		for _, pkg := range all {
+			for _, pat := range patterns {
+				if matchPackage(pat, pkg) {
+					included = append(included, pkg)
+					break
+				}
 			}
 		}
 	}
-	return out, nil
+	filtered, excludedCount := ApplyExclude(included, excludePatterns)
+	return filtered, excludedCount, nil
+}
+
+// ApplyExclude filters packages by exclude patterns (glob or segment). Default segments testkit, fixtures, fake, spy are always applied.
+// Returns filtered list and the number of packages excluded.
+func ApplyExclude(packages []string, excludePatterns []string) (filtered []string, excludedCount int) {
+	merged := make([]string, 0, len(defaultExcludeSegments)+len(excludePatterns))
+	for _, s := range defaultExcludeSegments {
+		merged = append(merged, "**/"+s+"/**")
+	}
+	merged = append(merged, excludePatterns...)
+	filtered = make([]string, 0, len(packages))
+	for _, pkg := range packages {
+		if matchAnyExclude(merged, pkg) {
+			excludedCount++
+			continue
+		}
+		filtered = append(filtered, pkg)
+	}
+	return filtered, excludedCount
+}
+
+func matchAnyExclude(patterns []string, pkg string) bool {
+	for _, pat := range patterns {
+		if matchExcludePattern(pat, pkg) {
+			return true
+		}
+	}
+	return false
+}
+
+// matchExcludePattern returns true if the package import path matches the exclude pattern.
+// Supports "**/segment/**" (path contains /segment/) and "**/segment" (suffix); otherwise filepath.Match.
+func matchExcludePattern(pattern, pkg string) bool {
+	pattern = strings.TrimSpace(pattern)
+	if pattern == "" {
+		return false
+	}
+	// **/segment/** or **/segment
+	if strings.HasPrefix(pattern, "**/") {
+		rest := pattern[3:]
+		if strings.HasSuffix(rest, "/**") {
+			segment := rest[:len(rest)-3]
+			return strings.Contains(pkg, "/"+segment+"/") || strings.HasSuffix(pkg, "/"+segment)
+		}
+		return strings.HasSuffix(pkg, "/"+rest) || strings.Contains(pkg, "/"+rest+"/")
+	}
+	// Plain segment (e.g. testkit)
+	if !strings.Contains(pattern, "*") {
+		return strings.Contains(pkg, "/"+pattern+"/") || strings.HasSuffix(pkg, "/"+pattern)
+	}
+	matched, _ := filepath.Match(pattern, pkg)
+	return matched
 }
 
 // listModulePackages runs go list ./... and returns import paths, excluding vendor/testdata/examples/generated.

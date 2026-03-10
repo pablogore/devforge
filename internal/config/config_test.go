@@ -29,6 +29,20 @@ policies:
 			ctx.Expect(len(c.Policies.Coverage.Packages) == 1 && c.Policies.Coverage.Packages[0] == "*").To(specs.BeTrue())
 			ctx.Expect(c.Mode).ToEqual("full")
 		})
+		s.It("decodes policies coverage exclude", func(ctx *specs.Context) {
+			yamlBytes := []byte(`policies:
+  coverage:
+    threshold: 90
+    exclude:
+      - "**/testkit/**"
+`)
+			var c Config
+			err := yaml.Unmarshal(yamlBytes, &c)
+			ctx.Expect(err).To(specs.BeNil())
+			ctx.Expect(c.Policies != nil && c.Policies.Coverage != nil).To(specs.BeTrue())
+			ctx.Expect(c.Policies.Coverage.Threshold).ToEqual(90)
+			ctx.Expect(len(c.Policies.Coverage.Exclude) == 1 && c.Policies.Coverage.Exclude[0] == "**/testkit/**").To(specs.BeTrue())
+		})
 		s.It("plugins nil when not present", func(ctx *specs.Context) {
 			yamlBytes := []byte("profile: go-lib\n")
 			var c Config

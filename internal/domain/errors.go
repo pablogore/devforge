@@ -24,4 +24,8 @@ var (
 	ErrReleaseFailed             = errors.New("release failed")
 	ErrIdempotencyCheckFailed    = errors.New("idempotency check failed - version not deterministic")
 	ErrGovulncheckHighOrCritical = errors.New("govulncheck found HIGH or CRITICAL vulnerabilities")
+	// ErrToolFailure indicates a tool exited with non-zero (e.g. lint failures). Used for [devforge] TOOL FAILURE.
+	ErrToolFailure = errors.New("tool failed")
+	// ErrToolCrash indicates a tool crashed (panic/fatal in output or unexpected failure). Used for [devforge] TOOL CRASH.
+	ErrToolCrash = errors.New("tool crashed")
 )

@@ -2,6 +2,7 @@ package steps
 
 import (
 	"fmt"
+	"os/exec"
 	"strings"
 	"time"
 
@@ -9,6 +10,8 @@ import (
 	"github.com/pablogore/devforge/internal/domain"
 	"github.com/pablogore/devforge/internal/guard"
 )
+
+const goSpecsModule = "github.com/pablogore/go-specs"
 
 // GoModTidyStep runs go mod tidy and fails if go.mod or go.sum change.
 type GoModTidyStep struct{}
@@ -78,13 +81,22 @@ func (GovulnCheckStep) Run(ctx *application.Context) error {
 
 const defaultCoverPkg = "./internal/domain,./internal/application"
 
-// GoTestStep runs go test with race and coverage; packages come from policy or profile default.
+// specsRunnerAvailableFunc is used by GoTestStep to decide specs vs go test; tests can override.
+var specsRunnerAvailableFunc = func(ctx *application.Context) bool {
+	if _, err := exec.LookPath("specs"); err != nil {
+		return false
+	}
+	_, err := ctx.Cmd.RunCombinedOutput(ctx.StdCtx, ctx.Workdir, "go", "list", "-m", goSpecsModule)
+	return err == nil
+}
+
+// GoTestStep runs tests via specs runner (if available) or go test, with race and coverage. Produces coverage.out to avoid duplicate test runs.
 type GoTestStep struct{}
 
 // Name returns the step name.
 func (GoTestStep) Name() string { return "test" }
 
-// Run executes go test -race -coverprofile=coverage.out ...
+// Run runs tests once: if specs CLI exists and repo has go-specs, runs specs with race and coverage; otherwise runs go test. Output is coverage.out.
 func (GoTestStep) Run(ctx *application.Context) error {
 	coverPkg := ctx.CoverPkg
 	if coverPkg == "" {
@@ -98,6 +110,19 @@ func (GoTestStep) Run(ctx *application.Context) error {
 		ctx.Log.Info("Coverage policy applied", "threshold", ctx.CoverageThreshold, "packages", packagesFromPolicy)
 		ctx.Log.Info("Expanded packages", "list", strings.Join(ctx.CoveragePackagesResolved, ", "))
 	}
+
+	if specsRunnerAvailableFunc(ctx) {
+		ctx.Log.Info("[devforge] tests executed via specs runner")
+		ctx.Log.Info("[devforge] skipping go test duplicate run")
+		// specs run forwards args after -- to go test; -race and -coverprofile ensure race and coverage.out
+		args := []string{"run", "--", "-race", "-coverprofile=coverage.out", "-coverpkg=" + coverPkg, "./..."}
+		_, err := ctx.Cmd.RunCombinedOutput(ctx.StdCtx, ctx.Workdir, "specs", args...)
+		if err != nil {
+			return domain.ErrTestFailed
+		}
+		return nil
+	}
+
 	ctx.Log.Info("Running go test", "step", "test", "flags", "race,coverage")
 	_, err := ctx.Cmd.RunCombinedOutput(ctx.StdCtx, ctx.Workdir, "go", "test", "-race", "-coverprofile=coverage.out", "-coverpkg="+coverPkg, "./...")
 	if err != nil {
@@ -141,8 +166,21 @@ func (CoverageStep) Run(ctx *application.Context) error {
 	if err := domain.ValidateCoverage(result.Percentage, ctx.CoverageThreshold); err != nil {
 		return err
 	}
-	ctx.Log.Info("Coverage check passed", "coverage", result.Percentage, "threshold", ctx.CoverageThreshold)
+	excluded := ctx.CoverageExcludedCount
+	ctx.Log.Info("Coverage check passed",
+		"coverage", result.Percentage,
+		"threshold", ctx.CoverageThreshold,
+		"excluded_packages", excluded)
+	ctx.Log.Info("Coverage: "+formatPct(result.Percentage)+" | Threshold: "+formatPct(ctx.CoverageThreshold)+" | Excluded packages: "+formatInt(excluded))
 	return nil
+}
+
+func formatPct(f float64) string {
+	return fmt.Sprintf("%.1f%%", f)
+}
+
+func formatInt(n int) string {
+	return fmt.Sprintf("%d", n)
 }
 
 // ConventionalCommitStep validates PR title or latest commit message against conventional commit format.

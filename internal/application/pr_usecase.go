@@ -72,24 +72,30 @@ func (u *PRUsecase) RunWithTitleAndPluginConfig(workdir, _ string, titleOverride
 		if pol.Threshold > 0 {
 			ctx.CoverageThreshold = float64(pol.Threshold)
 		}
+		excludePatterns := pol.Exclude
+		if excludePatterns == nil {
+			excludePatterns = []string{}
+		}
 		if len(pol.Packages) > 0 {
 			if err := coverage.ValidateCoveragePatterns(pol.Packages); err != nil {
 				return err
 			}
-			resolved, err := coverage.ResolveCoveragePackages(stdCtx, workdir, pol.Packages, u.commandRunner)
+			resolved, excludedCount, err := coverage.ResolveCoveragePackages(stdCtx, workdir, pol.Packages, excludePatterns, u.commandRunner)
 			if err != nil {
 				return err
 			}
 			ctx.CoverPkg = coverage.BuildCoverPkgFlag(resolved)
 			ctx.CoveragePackagesResolved = resolved
+			ctx.CoverageExcludedCount = excludedCount
 		} else if pol.Threshold > 0 {
 			// Threshold set but no packages: use all module packages so coverage is measured repo-wide (e.g. kit-core with no internal/).
-			resolved, err := coverage.ResolveCoveragePackages(stdCtx, workdir, []string{"*"}, u.commandRunner)
+			resolved, excludedCount, err := coverage.ResolveCoveragePackages(stdCtx, workdir, []string{"*"}, excludePatterns, u.commandRunner)
 			if err != nil {
 				return err
 			}
 			ctx.CoverPkg = coverage.BuildCoverPkgFlag(resolved)
 			ctx.CoveragePackagesResolved = resolved
+			ctx.CoverageExcludedCount = excludedCount
 		}
 		if pol.Threshold > 0 || len(pol.Packages) > 0 {
 			u.logger.Info("Coverage policy applied from .devforge.yml", "threshold", ctx.CoverageThreshold, "packages", pol.Packages)

@@ -16,6 +16,9 @@ type CoveragePolicy struct {
 	Threshold int `yaml:"threshold"`
 	// Packages are package patterns: "*" (all), "internal/*", or explicit paths like "internal/domain".
 	Packages []string `yaml:"packages"`
+	// Exclude are glob-style patterns for packages to exclude from coverage (e.g. "**/testkit/**").
+	// Applied after package expansion; default exclusions (testkit, fixtures, fake, spy) are always applied.
+	Exclude []string `yaml:"exclude"`
 }
 
 // Policies holds optional policy overrides from .devforge.yml.
