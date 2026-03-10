@@ -15,6 +15,7 @@ jobs:
 
     env:
       GOPRIVATE: github.com/devforge/*
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
     steps:
       - name: Checkout
