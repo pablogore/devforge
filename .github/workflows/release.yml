@@ -53,17 +53,6 @@ jobs:
             git push origin v1
           fi
 
-      - name: Login to GHCR
-        env:
-          DOCKER_CLIENT_TIMEOUT: 120
-          COMPOSE_HTTP_TIMEOUT: 120
-        run: |
-          for i in 1 2 3; do
-            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin && break
-            echo "Attempt $i failed, retrying in 10s..."
-            sleep 10
-          done
-
       - name: Run GoReleaser
         uses: goreleaser/goreleaser-action@v5
         with:
