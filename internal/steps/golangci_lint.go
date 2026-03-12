@@ -6,8 +6,8 @@ import (
 	"github.com/pablogore/devforge/internal/application"
 )
 
-// GolangciLintModuleVersion is the pinned golangci-lint v2 module for deterministic runs (used by step and tests).
-const GolangciLintModuleVersion = "github.com/golangci/golangci-lint/v2@v2.1.0"
+// GolangciLintModuleVersion is the pinned golangci-lint v2 cmd package for go run (used by step and tests).
+const GolangciLintModuleVersion = "github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.1.0"
 
 // GolangciLintRunArgs are the arguments passed to the linter (run --timeout=5m).
 var GolangciLintRunArgs = []string{"run", "--timeout=5m"}
